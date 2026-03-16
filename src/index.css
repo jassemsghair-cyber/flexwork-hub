@@ -125,7 +125,15 @@
 
 @layer utilities {
   .glass {
-    @apply bg-card/60 backdrop-blur-[20px] border border-white/[0.06];
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .glass-strong {
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(30px);
+    border: 1px solid hsl(var(--glass-border));
   }
 
   .glass-strong {
