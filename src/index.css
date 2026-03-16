@@ -136,9 +136,6 @@
     border: 1px solid hsl(var(--glass-border));
   }
 
-  .glass-strong {
-    @apply bg-card/80 backdrop-blur-[30px] border border-white/[0.1];
-  }
 
   .gradient-blob {
     @apply absolute rounded-full blur-[120px] opacity-30 pointer-events-none;
