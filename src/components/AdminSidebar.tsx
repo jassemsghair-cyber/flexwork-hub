@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Briefcase, LogOut } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 export default function AdminSidebar() {
   const location = useLocation();
