@@ -42,7 +42,8 @@ export default function AdminSidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-3">
+        <div className="px-4"><ThemeToggle /></div>
         <div className="flex items-center gap-3 px-4 py-3">
           <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">AD</div>
           <div className="flex-1 min-w-0">
