@@ -60,6 +60,52 @@
     --space-2xl: 3rem;
     --space-3xl: 4rem;
   }
+
+  .light {
+    --background: 220 20% 97%;
+    --foreground: 220 30% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 30% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 30% 10%;
+
+    --primary: 244 94% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 220 30% 10%;
+
+    --muted: 220 15% 92%;
+    --muted-foreground: 215 14% 45%;
+
+    --accent: 244 94% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 74% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 164 100% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 220 15% 88%;
+    --input: 220 15% 88%;
+    --ring: 244 94% 60%;
+
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 220 30% 10% / 0.08;
+    --glass-blur: 20px;
+
+    --sidebar-background: 220 20% 96%;
+    --sidebar-foreground: 220 30% 10%;
+    --sidebar-primary: 244 94% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 92%;
+    --sidebar-accent-foreground: 220 30% 10%;
+    --sidebar-border: 220 15% 88%;
+    --sidebar-ring: 244 94% 60%;
+  }
 }
 
 @layer base {
@@ -79,12 +125,17 @@
 
 @layer utilities {
   .glass {
-    @apply bg-card/60 backdrop-blur-[20px] border border-white/[0.06];
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid hsl(var(--glass-border));
   }
 
   .glass-strong {
-    @apply bg-card/80 backdrop-blur-[30px] border border-white/[0.1];
+    background: hsl(var(--card) / 0.85);
+    backdrop-filter: blur(30px);
+    border: 1px solid hsl(var(--glass-border));
   }
+
 
   .gradient-blob {
     @apply absolute rounded-full blur-[120px] opacity-30 pointer-events-none;
@@ -149,19 +200,23 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: hsl(220 30% 6%);
+  background: hsl(var(--background));
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(220 15% 20%);
+  background: hsl(var(--muted));
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(244 94% 69% / 0.5);
+  background: hsl(var(--primary) / 0.5);
+}
+
+/* Light mode body adjustments */
+.light body {
+  background-image: none;
 }
 
 /* Toast animations */

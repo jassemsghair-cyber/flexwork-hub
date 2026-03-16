@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 interface NavbarProps {
   userRole?: "candidat" | "employeur" | "admin" | null;
@@ -54,6 +55,7 @@ export default function Navbar({ userRole = null }: NavbarProps) {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <ThemeToggle />
             {!userRole ? (
               <>
                 <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
