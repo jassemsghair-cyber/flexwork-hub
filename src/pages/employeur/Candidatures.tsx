@@ -1,17 +1,84 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Badge from "@/components/Badge";
 import { OFFRES, CANDIDATURES, CANDIDATS, formatDate } from "@/lib/data";
-import { CheckCircle, XCircle, User } from "lucide-react";
+import { candidaturesApi, type ApiCandidatureForJob } from "@/lib/api";
+import { CheckCircle, XCircle, User, Loader2, AlertTriangle } from "lucide-react";
+
+type Row = {
+  id: number;
+  candidat_nom: string;
+  candidat_email: string;
+  candidat_ville: string;
+  initials: string;
+  date_postulation: string;
+  statut: "en_attente" | "acceptee" | "refusee";
+};
 
 export default function EmployeurCandidatures() {
   const mesOffres = OFFRES.filter(o => ["Café Médina", "Brew House Café"].includes(o.entreprise));
   const [selectedOffre, setSelectedOffre] = useState(mesOffres[0]?.id || 0);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const { toast } = useToast();
 
-  const candidatures = CANDIDATURES.filter(c => c.offre_id === selectedOffre);
-  const filtered = statusFilter === "all" ? candidatures : candidatures.filter(c => c.statut === statusFilter);
+  const load = (jobId: number, statut: string) => {
+    setLoading(true);
+    candidaturesApi
+      .listByJob(jobId, statut)
+      .then((res) => {
+        const mapped: Row[] = (res.candidatures as ApiCandidatureForJob[]).map((c) => ({
+          id: c.id,
+          candidat_nom: c.candidat_nom,
+          candidat_email: c.candidat_email,
+          candidat_ville: c.candidat_ville ?? "",
+          initials: c.candidat_nom.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase(),
+          date_postulation: c.date_postulation,
+          statut: c.statut,
+        }));
+        setRows(mapped);
+        setUsingFallback(false);
+      })
+      .catch(() => {
+        const fallback = CANDIDATURES
+          .filter((c) => c.offre_id === jobId && (statut === "all" || c.statut === statut))
+          .map((c) => {
+            const cand = CANDIDATS.find((x) => x.id === c.candidat_id)!;
+            return {
+              id: c.id,
+              candidat_nom: `${cand.prenom} ${cand.nom}`,
+              candidat_email: cand.email,
+              candidat_ville: cand.ville,
+              initials: `${cand.prenom[0]}${cand.nom[0]}`,
+              date_postulation: c.date_postulation,
+              statut: c.statut,
+            } as Row;
+          });
+        setRows(fallback);
+        setUsingFallback(true);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (selectedOffre) load(selectedOffre, statusFilter);
+  }, [selectedOffre, statusFilter]);
+
+  const updateStatus = async (id: number, newStatut: "acceptee" | "refusee") => {
+    try {
+      await candidaturesApi.updateStatus(id, newStatut);
+      toast({ title: "Mis à jour", description: `Candidature ${newStatut === "acceptee" ? "acceptée" : "refusée"}.` });
+      load(selectedOffre, statusFilter);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur";
+      toast({ title: "Action locale (backend hors-ligne)", description: msg, variant: "destructive" });
+      setRows((rs) => rs.map((r) => (r.id === id ? { ...r, statut: newStatut } : r)));
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -19,7 +86,12 @@ export default function EmployeurCandidatures() {
 
       <div className="pt-24 pb-20 px-4">
         <div className="max-w-5xl mx-auto">
-          <h1 className="font-heading font-bold text-3xl mb-8 fade-up">Candidatures reçues</h1>
+          <h1 className="font-heading font-bold text-3xl mb-2 fade-up">Candidatures reçues</h1>
+          {usingFallback && (
+            <div className="mb-6 flex items-center gap-2 text-xs text-warning fade-up">
+              <AlertTriangle size={14} /> Backend PHP indisponible — données de démonstration.
+            </div>
+          )}
 
           {/* Offer Selector */}
           <div className="mb-6 fade-up stagger-1">
@@ -30,7 +102,7 @@ export default function EmployeurCandidatures() {
               className="px-4 py-3 glass rounded-btn text-sm outline-none w-full max-w-md"
             >
               {mesOffres.map(o => (
-                <option key={o.id} value={o.id}>{o.titre} ({CANDIDATURES.filter(c => c.offre_id === o.id).length} candidatures)</option>
+                <option key={o.id} value={o.id}>{o.titre}</option>
               ))}
             </select>
           </div>
@@ -55,38 +127,38 @@ export default function EmployeurCandidatures() {
             ))}
           </div>
 
-          <p className="text-sm text-muted-foreground mb-4">{filtered.length} candidature{filtered.length > 1 ? "s" : ""}</p>
+          <p className="text-sm text-muted-foreground mb-4">{rows.length} candidature{rows.length > 1 ? "s" : ""}</p>
 
-          {/* Candidate Cards */}
-          {filtered.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-20 glass rounded-card">
+              <Loader2 size={32} className="mx-auto text-primary animate-spin mb-4" />
+              <p className="text-sm text-muted-foreground">Chargement...</p>
+            </div>
+          ) : rows.length > 0 ? (
             <div className="space-y-4">
-              {filtered.map((candidature, i) => {
-                const candidat = CANDIDATS.find(c => c.id === candidature.candidat_id);
-                if (!candidat) return null;
-                return (
-                  <div key={candidature.id} className={`glass rounded-card p-5 card-hover fade-up stagger-${(i % 6) + 1}`}>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                        <span className="font-heading font-bold text-primary text-sm">{candidat.prenom[0]}{candidat.nom[0]}</span>
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{candidat.prenom} {candidat.nom}</h3>
-                        <p className="text-sm text-muted-foreground">{candidat.email} · {candidat.ville}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground">{formatDate(candidature.date_postulation)}</span>
-                        <Badge
-                          text={candidature.statut === "acceptee" ? "Acceptée" : candidature.statut === "refusee" ? "Refusée" : "En attente"}
-                          variant={candidature.statut === "acceptee" ? "success" : candidature.statut === "refusee" ? "destructive" : "warning"}
-                        />
-                        <button className="p-2 glass rounded-btn text-muted-foreground hover:text-foreground"><User size={16} /></button>
-                        <button className="p-2 rounded-btn bg-success/10 text-success border border-success/20 hover:bg-success/20 transition-colors"><CheckCircle size={16} /></button>
-                        <button className="p-2 rounded-btn bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors"><XCircle size={16} /></button>
-                      </div>
+              {rows.map((c, i) => (
+                <div key={c.id} className={`glass rounded-card p-5 card-hover fade-up stagger-${(i % 6) + 1}`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <span className="font-heading font-bold text-primary text-sm">{c.initials}</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium">{c.candidat_nom}</h3>
+                      <p className="text-sm text-muted-foreground">{c.candidat_email}{c.candidat_ville ? ` · ${c.candidat_ville}` : ""}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">{formatDate(c.date_postulation)}</span>
+                      <Badge
+                        text={c.statut === "acceptee" ? "Acceptée" : c.statut === "refusee" ? "Refusée" : "En attente"}
+                        variant={c.statut === "acceptee" ? "success" : c.statut === "refusee" ? "destructive" : "warning"}
+                      />
+                      <button className="p-2 glass rounded-btn text-muted-foreground hover:text-foreground"><User size={16} /></button>
+                      <button onClick={() => updateStatus(c.id, "acceptee")} className="p-2 rounded-btn bg-success/10 text-success border border-success/20 hover:bg-success/20 transition-colors"><CheckCircle size={16} /></button>
+                      <button onClick={() => updateStatus(c.id, "refusee")} className="p-2 rounded-btn bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors"><XCircle size={16} /></button>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-20 glass rounded-card">
