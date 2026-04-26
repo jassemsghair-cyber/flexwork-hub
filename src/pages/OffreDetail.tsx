@@ -1,37 +1,97 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
 import Badge from "@/components/Badge";
-import { OFFRES, formatSalaire, formatDate } from "@/lib/data";
-import { candidaturesApi } from "@/lib/api";
+import { OFFRES, formatSalaire, formatDate, Offre } from "@/lib/data";
+import { candidaturesApi, jobsApi, getCurrentUser, ApiJob } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Clock, Calendar, Share2, Briefcase, Loader2 } from "lucide-react";
 
-const CURRENT_CANDIDAT_ID = 1; // TODO: replace with auth
+function apiToOffre(j: ApiJob): Offre {
+  return {
+    id: j.id,
+    titre: j.title,
+    entreprise: j.entreprise || "—",
+    logo: j.logo || (j.entreprise ? j.entreprise.slice(0, 2).toUpperCase() : "??"),
+    lieu: j.lieu || "—",
+    secteur: j.secteur || "—",
+    salaire: parseFloat(j.salaire || "0"),
+    horaire: j.horaire || "—",
+    type: j.type || "Temps partiel",
+    description: j.description || "",
+    competences: j.competences || [],
+    date_publication: j.created_at,
+    statut: (j.statut === "active" || j.statut === "en_attente" || j.statut === "rejetee") ? j.statut : "active",
+  };
+}
 
 export default function OffreDetail() {
   const { id } = useParams();
-  const offre = OFFRES.find(o => o.id === Number(id));
+  const navigate = useNavigate();
+  const [offre, setOffre] = useState<Offre | null>(null);
+  const [similar, setSimilar] = useState<Offre[]>([]);
+  const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [message, setMessage] = useState("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    const jobId = Number(id);
+    if (!jobId) return;
+    setLoading(true);
+    jobsApi.get(jobId)
+      .then((data) => {
+        const o = apiToOffre(data.job);
+        setOffre(o);
+        return jobsApi.list({ secteur: o.secteur, statut: "active" }).then((res) => {
+          setSimilar(res.jobs.filter((j) => j.id !== o.id).slice(0, 3).map(apiToOffre));
+        }).catch(() => {});
+      })
+      .catch(() => {
+        // Fallback mocks
+        const fallback = OFFRES.find((o) => o.id === jobId) || null;
+        setOffre(fallback);
+        if (fallback) {
+          setSimilar(OFFRES.filter((o) => o.secteur === fallback.secteur && o.id !== fallback.id).slice(0, 3));
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const handleApply = async () => {
     if (!offre) return;
+    const user = getCurrentUser();
+    if (!user) {
+      toast({ title: "Connexion requise", description: "Veuillez vous connecter pour postuler.", variant: "destructive" });
+      navigate("/login");
+      return;
+    }
+    if (user.role !== "candidat") {
+      toast({ title: "Action impossible", description: "Seuls les candidats peuvent postuler.", variant: "destructive" });
+      return;
+    }
     setApplying(true);
     try {
-      await candidaturesApi.apply({ job_id: offre.id, candidat_id: CURRENT_CANDIDAT_ID });
+      await candidaturesApi.apply({ job_id: offre.id, candidat_id: user.id, message: message || undefined });
       setApplied(true);
       toast({ title: "Candidature envoyée", description: `Votre candidature pour "${offre.titre}" a été enregistrée.` });
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Erreur";
-      toast({ title: "Impossible de postuler", description: msg, variant: "destructive" });
+      toast({ title: "Impossible de postuler", description: err instanceof Error ? err.message : "Erreur", variant: "destructive" });
     } finally {
       setApplying(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!offre) {
     return (
@@ -43,8 +103,6 @@ export default function OffreDetail() {
       </div>
     );
   }
-
-  const similar = OFFRES.filter(o => o.secteur === offre.secteur && o.id !== offre.id).slice(0, 3);
 
   return (
     <div className="min-h-screen">
@@ -78,14 +136,18 @@ export default function OffreDetail() {
 
                 <div className="prose prose-sm max-w-none">
                   <h3 className="font-heading font-semibold text-lg mb-3">Description du poste</h3>
-                  <p className="text-muted-foreground leading-relaxed">{offre.description}</p>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{offre.description}</p>
 
-                  <h3 className="font-heading font-semibold text-lg mt-8 mb-3">Compétences requises</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {offre.competences.map(c => (
-                      <span key={c} className="px-3 py-1.5 bg-muted rounded-full text-sm text-foreground">{c}</span>
-                    ))}
-                  </div>
+                  {offre.competences.length > 0 && (
+                    <>
+                      <h3 className="font-heading font-semibold text-lg mt-8 mb-3">Compétences requises</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {offre.competences.map((c) => (
+                          <span key={c} className="px-3 py-1.5 bg-muted rounded-full text-sm text-foreground">{c}</span>
+                        ))}
+                      </div>
+                    </>
+                  )}
 
                   <h3 className="font-heading font-semibold text-lg mt-8 mb-3">À propos de {offre.entreprise}</h3>
                   <p className="text-muted-foreground">
@@ -100,7 +162,7 @@ export default function OffreDetail() {
                 <div className="mt-8">
                   <h2 className="font-heading font-semibold text-xl mb-6">Offres similaires</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {similar.map(o => <JobCard key={o.id} offre={o} />)}
+                    {similar.map((o) => <JobCard key={o.id} offre={o} />)}
                   </div>
                 </div>
               )}
@@ -115,23 +177,21 @@ export default function OffreDetail() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm">
-                    <MapPin size={16} className="text-muted-foreground" />
-                    <span>{offre.lieu}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Clock size={16} className="text-muted-foreground" />
-                    <span>{offre.horaire}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Briefcase size={16} className="text-muted-foreground" />
-                    <span>{offre.type}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Calendar size={16} className="text-muted-foreground" />
-                    <span>Publié le {formatDate(offre.date_publication)}</span>
-                  </div>
+                  <div className="flex items-center gap-3 text-sm"><MapPin size={16} className="text-muted-foreground" /><span>{offre.lieu}</span></div>
+                  <div className="flex items-center gap-3 text-sm"><Clock size={16} className="text-muted-foreground" /><span>{offre.horaire}</span></div>
+                  <div className="flex items-center gap-3 text-sm"><Briefcase size={16} className="text-muted-foreground" /><span>{offre.type}</span></div>
+                  <div className="flex items-center gap-3 text-sm"><Calendar size={16} className="text-muted-foreground" /><span>Publié le {formatDate(offre.date_publication)}</span></div>
                 </div>
+
+                {!applied && (
+                  <textarea
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Message de motivation (optionnel)"
+                    rows={3}
+                    className="w-full px-3 py-2 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  />
+                )}
 
                 <button
                   onClick={handleApply}
@@ -143,9 +203,7 @@ export default function OffreDetail() {
                 </button>
 
                 <div className="flex justify-center gap-4 pt-2">
-                  <button className="text-muted-foreground hover:text-foreground transition-colors">
-                    <Share2 size={18} />
-                  </button>
+                  <button className="text-muted-foreground hover:text-foreground transition-colors"><Share2 size={18} /></button>
                 </div>
               </div>
             </div>
