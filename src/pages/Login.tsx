@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { authApi, setCurrentUser } from "@/lib/api";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,30 +17,15 @@ export default function Login() {
     setLoading(true);
     setError("");
 
-    const formData = new FormData();
-    formData.append('email', email);
-    formData.append('password', password);
-
     try {
-      const response = await fetch('http://localhost/flexwork-backend/login.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Stocker l'utilisateur (par exemple dans localStorage)
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/'); // Rediriger vers la page d'accueil
-      } else {
-        setError(data.message);
-      }
+      const data = await authApi.login(email, password);
+      setCurrentUser(data.user);
+      // Redirection selon le rôle
+      if (data.user.role === "admin")          navigate("/admin/dashboard");
+      else if (data.user.role === "employeur") navigate("/employeur/dashboard");
+      else                                      navigate("/candidat/profil");
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError(err instanceof Error ? err.message : "Erreur de connexion");
     } finally {
       setLoading(false);
     }
