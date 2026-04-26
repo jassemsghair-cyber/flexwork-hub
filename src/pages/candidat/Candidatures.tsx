@@ -1,28 +1,89 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StatCard from "@/components/StatCard";
 import Badge from "@/components/Badge";
 import { CANDIDATURES, OFFRES, formatDate } from "@/lib/data";
-import { FileText, Clock, CheckCircle, XCircle, Briefcase } from "lucide-react";
+import { candidaturesApi, type ApiCandidatureCandidate } from "@/lib/api";
+import { FileText, Clock, CheckCircle, XCircle, Briefcase, Loader2, AlertTriangle } from "lucide-react";
+
+// Currently signed-in candidate id. Replace with real auth later.
+const CURRENT_CANDIDAT_ID = 1;
+
+type Row = {
+  id: number;
+  offre_id: number;
+  offre_titre: string;
+  entreprise: string;
+  lieu: string;
+  logo: string;
+  date_postulation: string;
+  statut: "en_attente" | "acceptee" | "refusee";
+};
 
 export default function CandidatCandidatures() {
   const [filter, setFilter] = useState<string>("all");
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [usingFallback, setUsingFallback] = useState(false);
 
-  // Using candidat_id = 1 (Yasmine)
-  const myCandidatures = CANDIDATURES.filter(c => c.candidat_id === 1);
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    candidaturesApi
+      .listByCandidate(CURRENT_CANDIDAT_ID)
+      .then((res) => {
+        if (cancelled) return;
+        const mapped: Row[] = (res.candidatures as ApiCandidatureCandidate[]).map((c) => ({
+          id: c.id,
+          offre_id: c.job_id,
+          offre_titre: c.offre_titre,
+          entreprise: c.entreprise,
+          lieu: c.lieu,
+          logo: c.entreprise.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+          date_postulation: c.date_postulation,
+          statut: c.statut,
+        }));
+        setRows(mapped);
+        setUsingFallback(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Fallback to mock data when PHP backend isn't running
+        const mock = CANDIDATURES.filter((c) => c.candidat_id === CURRENT_CANDIDAT_ID).map((c) => {
+          const o = OFFRES.find((x) => x.id === c.offre_id)!;
+          return {
+            id: c.id,
+            offre_id: c.offre_id,
+            offre_titre: o.titre,
+            entreprise: o.entreprise,
+            lieu: o.lieu,
+            logo: o.logo,
+            date_postulation: c.date_postulation,
+            statut: c.statut,
+          };
+        });
+        setRows(mock);
+        setUsingFallback(true);
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
+  const myCandidatures = rows ?? [];
   const filtered = useMemo(() => {
     if (filter === "all") return myCandidatures;
-    return myCandidatures.filter(c => c.statut === filter);
-  }, [filter]);
+    return myCandidatures.filter((c) => c.statut === filter);
+  }, [filter, myCandidatures]);
 
   const stats = {
     total: myCandidatures.length,
-    en_attente: myCandidatures.filter(c => c.statut === "en_attente").length,
-    acceptee: myCandidatures.filter(c => c.statut === "acceptee").length,
-    refusee: myCandidatures.filter(c => c.statut === "refusee").length,
+    en_attente: myCandidatures.filter((c) => c.statut === "en_attente").length,
+    acceptee: myCandidatures.filter((c) => c.statut === "acceptee").length,
+    refusee: myCandidatures.filter((c) => c.statut === "refusee").length,
   };
 
   const statusBadge = (statut: string) => {
@@ -46,7 +107,12 @@ export default function CandidatCandidatures() {
 
       <div className="pt-24 pb-20 px-4">
         <div className="max-w-5xl mx-auto">
-          <h1 className="font-heading font-bold text-3xl mb-8 fade-up">Mes candidatures</h1>
+          <h1 className="font-heading font-bold text-3xl mb-2 fade-up">Mes candidatures</h1>
+          {usingFallback && (
+            <div className="mb-6 flex items-center gap-2 text-xs text-warning fade-up">
+              <AlertTriangle size={14} /> Backend PHP indisponible — affichage des données de démonstration.
+            </div>
+          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 fade-up stagger-1">
@@ -71,36 +137,36 @@ export default function CandidatCandidatures() {
             ))}
           </div>
 
-          {/* Application Cards */}
-          {filtered.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-20 glass rounded-card">
+              <Loader2 size={32} className="mx-auto text-primary animate-spin mb-4" />
+              <p className="text-sm text-muted-foreground">Chargement de vos candidatures...</p>
+            </div>
+          ) : filtered.length > 0 ? (
             <div className="space-y-4">
-              {filtered.map((candidature, i) => {
-                const offre = OFFRES.find(o => o.id === candidature.offre_id);
-                if (!offre) return null;
-                return (
-                  <div key={candidature.id} className={`glass rounded-card p-5 card-hover fade-up stagger-${(i % 6) + 1}`}>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                      <div className="w-12 h-12 rounded-btn bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                        <span className="font-heading font-bold text-primary text-sm">{offre.logo}</span>
+              {filtered.map((candidature, i) => (
+                <div key={candidature.id} className={`glass rounded-card p-5 card-hover fade-up stagger-${(i % 6) + 1}`}>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="w-12 h-12 rounded-btn bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <span className="font-heading font-bold text-primary text-sm">{candidature.logo}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading font-semibold">{candidature.offre_titre}</h3>
+                      <p className="text-sm text-muted-foreground">{candidature.entreprise} · {candidature.lieu}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Postulé le</p>
+                        <p className="text-sm">{formatDate(candidature.date_postulation)}</p>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-heading font-semibold">{offre.titre}</h3>
-                        <p className="text-sm text-muted-foreground">{offre.entreprise} · {offre.lieu}</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Postulé le</p>
-                          <p className="text-sm">{formatDate(candidature.date_postulation)}</p>
-                        </div>
-                        {statusBadge(candidature.statut)}
-                        <Link to={`/offre/${offre.id}`} className="text-sm text-primary hover:opacity-80">
-                          Voir l'offre
-                        </Link>
-                      </div>
+                      {statusBadge(candidature.statut)}
+                      <Link to={`/offre/${candidature.offre_id}`} className="text-sm text-primary hover:opacity-80">
+                        Voir l'offre
+                      </Link>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-20 glass rounded-card">
