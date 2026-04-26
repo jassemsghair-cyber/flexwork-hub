@@ -1,12 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
-import { OFFRES, SECTEURS, VILLES, HORAIRES } from "@/lib/data";
+import { SECTEURS, VILLES, HORAIRES } from "@/lib/data";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 export default function Offres() {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedSecteurs, setSelectedSecteurs] = useState<string[]>([]);
   const [selectedHoraire, setSelectedHoraire] = useState("");
@@ -16,34 +18,49 @@ export default function Offres() {
   const [sortBy, setSortBy] = useState("recent");
   const [showFilters, setShowFilters] = useState(false);
 
+  useEffect(() => {
+    fetch('http://localhost/flexwork-backend/api.php')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          // Transformer les données API en format Offre
+          const transformedJobs = data.jobs.map((job: any) => ({
+            id: job.id,
+            titre: job.title,
+            entreprise: "Entreprise inconnue",
+            secteur: "Informatique",
+            horaire: "Temps plein",
+            lieu: "Tunis",
+            salaire: 1500,
+            logo: "D",
+            statut: "active",
+            date_publication: new Date().toISOString()
+          }));
+          setJobs(transformedJobs);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Erreur API:', err);
+        setLoading(false);
+      });
+  }, []);
+
   const filtered = useMemo(() => {
-    let result = OFFRES.filter(o => o.statut === "active");
+    let result = jobs;
 
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(o =>
-        o.titre.toLowerCase().includes(s) ||
-        o.entreprise.toLowerCase().includes(s) ||
-        o.secteur.toLowerCase().includes(s)
+        o.titre.toLowerCase().includes(s)
       );
     }
-    if (selectedSecteurs.length > 0) {
-      result = result.filter(o => selectedSecteurs.includes(o.secteur));
-    }
-    if (selectedHoraire) {
-      result = result.filter(o => o.horaire.toLowerCase().includes(selectedHoraire.toLowerCase()));
-    }
-    if (selectedVille) {
-      result = result.filter(o => o.lieu === selectedVille);
-    }
-    result = result.filter(o => o.salaire >= salaireMin && o.salaire <= salaireMax);
-
-    if (sortBy === "salaire_asc") result.sort((a, b) => a.salaire - b.salaire);
-    else if (sortBy === "salaire_desc") result.sort((a, b) => b.salaire - a.salaire);
-    else result.sort((a, b) => new Date(b.date_publication).getTime() - new Date(a.date_publication).getTime());
+    // Ajoute d'autres filtres si nécessaire
 
     return result;
-  }, [search, selectedSecteurs, selectedHoraire, selectedVille, salaireMin, salaireMax, sortBy]);
+  }, [jobs, search]);
+
+  if (loading) return <div>Chargement...</div>;
 
   const toggleSecteur = (s: string) => {
     setSelectedSecteurs(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
