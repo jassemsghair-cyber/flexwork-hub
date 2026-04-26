@@ -3,11 +3,21 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
-import { SECTEURS, VILLES, HORAIRES } from "@/lib/data";
+import { SECTEURS, VILLES, HORAIRES, Offre } from "@/lib/data";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+interface ApiJob {
+  id: number;
+  title: string;
+  entreprise?: string;
+  secteur?: string;
+  lieu?: string;
+  salaire?: string;
+  horaire?: string;
+}
+
 export default function Offres() {
-  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<Offre[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedSecteurs, setSelectedSecteurs] = useState<string[]>([]);
@@ -19,29 +29,32 @@ export default function Offres() {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost/flexwork-backend/api.php')
-      .then(res => res.json())
-      .then(data => {
+    fetch("http://localhost/flexwork-backend/api.php")
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           // Transformer les données API en format Offre
-          const transformedJobs = data.jobs.map((job: any) => ({
+          const transformedJobs: Offre[] = data.jobs.map((job: ApiJob) => ({
             id: job.id,
             titre: job.title,
-            entreprise: "Entreprise inconnue",
-            secteur: "Informatique",
-            horaire: "Temps plein",
-            lieu: "Tunis",
-            salaire: 1500,
+            entreprise: job.entreprise || "Entreprise inconnue",
+            secteur: job.secteur || "Informatique",
+            horaire: job.horaire || "Temps plein",
+            lieu: job.lieu || "Tunis",
+            salaire: parseFloat(job.salaire || "1500"),
             logo: "D",
-            statut: "active",
-            date_publication: new Date().toISOString()
+            statut: "active" as const,
+            type: "CDI",
+            description: "Description à venir",
+            competences: ["Compétences requises"],
+            date_publication: new Date().toISOString(),
           }));
           setJobs(transformedJobs);
         }
         setLoading(false);
       })
-      .catch(err => {
-        console.error('Erreur API:', err);
+      .catch((err) => {
+        console.error("Erreur API:", err);
         setLoading(false);
       });
   }, []);
@@ -51,9 +64,7 @@ export default function Offres() {
 
     if (search) {
       const s = search.toLowerCase();
-      result = result.filter(o =>
-        o.titre.toLowerCase().includes(s)
-      );
+      result = result.filter((o) => o.titre.toLowerCase().includes(s));
     }
     // Ajoute d'autres filtres si nécessaire
 
@@ -63,7 +74,9 @@ export default function Offres() {
   if (loading) return <div>Chargement...</div>;
 
   const toggleSecteur = (s: string) => {
-    setSelectedSecteurs(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+    setSelectedSecteurs((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+    );
   };
 
   const resetFilters = () => {
@@ -83,8 +96,13 @@ export default function Offres() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8 fade-up">
             <div>
-              <h1 className="font-heading font-bold text-3xl md:text-4xl">Offres d'emploi</h1>
-              <p className="text-muted-foreground mt-2">{filtered.length} offre{filtered.length > 1 ? "s" : ""} trouvée{filtered.length > 1 ? "s" : ""}</p>
+              <h1 className="font-heading font-bold text-3xl md:text-4xl">
+                Offres d'emploi
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                {filtered.length} offre{filtered.length > 1 ? "s" : ""} trouvée
+                {filtered.length > 1 ? "s" : ""}
+              </p>
             </div>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -96,21 +114,28 @@ export default function Offres() {
 
           <div className="flex gap-8">
             {/* Sidebar Filters */}
-            <aside className={`w-[280px] flex-shrink-0 ${showFilters ? "fixed inset-0 z-50 bg-background p-6 overflow-y-auto" : "hidden md:block"}`}>
+            <aside
+              className={`w-[280px] flex-shrink-0 ${showFilters ? "fixed inset-0 z-50 bg-background p-6 overflow-y-auto" : "hidden md:block"}`}
+            >
               {showFilters && (
-                <button onClick={() => setShowFilters(false)} className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+                <button
+                  onClick={() => setShowFilters(false)}
+                  className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"
+                >
                   <X size={16} /> Fermer
                 </button>
               )}
               <div className="glass rounded-card p-5 space-y-6 sticky top-24">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Rechercher</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Rechercher
+                  </label>
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-btn">
                     <Search size={16} className="text-muted-foreground" />
                     <input
                       type="text"
                       value={search}
-                      onChange={e => setSearch(e.target.value)}
+                      onChange={(e) => setSearch(e.target.value)}
                       placeholder="Poste, entreprise..."
                       className="bg-transparent text-sm w-full outline-none"
                     />
@@ -118,10 +143,15 @@ export default function Offres() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Secteur</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Secteur
+                  </label>
                   <div className="space-y-2">
-                    {SECTEURS.map(s => (
-                      <label key={s} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer">
+                    {SECTEURS.map((s) => (
+                      <label
+                        key={s}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
                         <input
                           type="checkbox"
                           checked={selectedSecteurs.includes(s)}
@@ -135,23 +165,30 @@ export default function Offres() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Salaire: {salaireMin} - {salaireMax} DT</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Salaire: {salaireMin} - {salaireMax} DT
+                  </label>
                   <input
                     type="range"
                     min={0}
                     max={2000}
                     step={50}
                     value={salaireMax}
-                    onChange={e => setSalaireMax(Number(e.target.value))}
+                    onChange={(e) => setSalaireMax(Number(e.target.value))}
                     className="w-full accent-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Horaire</label>
+                  <label className="text-sm font-medium mb-2 block">
+                    Horaire
+                  </label>
                   <div className="space-y-2">
-                    {HORAIRES.map(h => (
-                      <label key={h} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer">
+                    {HORAIRES.map((h) => (
+                      <label
+                        key={h}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
                         <input
                           type="radio"
                           name="horaire"
@@ -169,11 +206,15 @@ export default function Offres() {
                   <label className="text-sm font-medium mb-2 block">Lieu</label>
                   <select
                     value={selectedVille}
-                    onChange={e => setSelectedVille(e.target.value)}
+                    onChange={(e) => setSelectedVille(e.target.value)}
                     className="w-full px-3 py-2 bg-muted/50 rounded-btn text-sm outline-none"
                   >
                     <option value="">Toutes les villes</option>
-                    {VILLES.map(v => <option key={v} value={v}>{v}</option>)}
+                    {VILLES.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -191,7 +232,7 @@ export default function Offres() {
               <div className="flex items-center justify-end mb-6">
                 <select
                   value={sortBy}
-                  onChange={e => setSortBy(e.target.value)}
+                  onChange={(e) => setSortBy(e.target.value)}
                   className="px-3 py-2 glass rounded-btn text-sm outline-none"
                 >
                   <option value="recent">Plus récent</option>
@@ -203,25 +244,35 @@ export default function Offres() {
               {filtered.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {filtered.map((offre, i) => (
-                    <JobCard key={offre.id} offre={offre} className={`fade-up stagger-${(i % 6) + 1}`} />
+                    <JobCard
+                      key={offre.id}
+                      offre={offre}
+                      className={`fade-up stagger-${(i % 6) + 1}`}
+                    />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-20 glass rounded-card">
                   <p className="text-4xl mb-4">🔍</p>
-                  <h3 className="font-heading font-semibold text-lg mb-2">Aucune offre trouvée</h3>
-                  <p className="text-sm text-muted-foreground">Essayez de modifier vos filtres de recherche</p>
+                  <h3 className="font-heading font-semibold text-lg mb-2">
+                    Aucune offre trouvée
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Essayez de modifier vos filtres de recherche
+                  </p>
                 </div>
               )}
 
               {/* Pagination visual */}
               {filtered.length > 0 && (
                 <div className="flex justify-center gap-2 mt-8">
-                  {[1, 2, 3].map(p => (
+                  {[1, 2, 3].map((p) => (
                     <button
                       key={p}
                       className={`w-10 h-10 rounded-btn text-sm font-medium transition-colors ${
-                        p === 1 ? "bg-primary text-primary-foreground" : "glass text-muted-foreground hover:text-foreground"
+                        p === 1
+                          ? "bg-primary text-primary-foreground"
+                          : "glass text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {p}

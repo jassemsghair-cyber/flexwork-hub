@@ -24,25 +24,27 @@ export default function Register() {
     setLoading(true);
     setError("");
 
-    const data = new FormData();
-    data.append('name', role === 'employeur' ? formData.company : formData.name);
-    data.append('email', formData.email);
-    data.append('password', formData.password);
-    data.append('role', role || 'candidat');
-
     try {
       const response = await fetch('http://localhost/flexwork-backend/register.php', {
         method: 'POST',
-        body: data,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role
+        }),
       });
 
-      const result = await response.json();
+      const data = await response.json();
 
-      if (result.success) {
-        localStorage.setItem('user', JSON.stringify(result.user));
-        navigate('/login');
+      if (data.success) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/login'); // Rediriger vers login après inscription
       } else {
-        setError(result.message);
+        setError(data.message);
       }
     } catch (err) {
       setError('Erreur de connexion au serveur');

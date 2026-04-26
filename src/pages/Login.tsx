@@ -23,14 +23,18 @@ export default function Login() {
     try {
       const response = await fetch('http://localhost/flexwork-backend/login.php', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (data.success) {
+        // Stocker l'utilisateur (par exemple dans localStorage)
         localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/');
+        navigate('/'); // Rediriger vers la page d'accueil
       } else {
         setError(data.message);
       }
