@@ -95,7 +95,21 @@ En cas d'erreur :
 ## 4. CORS
 
 Tous les endpoints autorisent `Access-Control-Allow-Origin: *` pour le développement local
-(React sur `localhost:5173` / `localhost:8080`). En production, restreindre à votre domaine.
+(React sur `localhost:5173` / `localhost:8080` / `localhost:8082`).
+
+Le CORS est envoyé à **trois niveaux** pour être robuste :
+1. Apache (`backend/.htaccess`) — répond aussi aux preflights `OPTIONS` avec un 204
+2. PHP (`helpers.php`) — envoie les headers immédiatement, avant tout autre code
+3. `db.php` charge `helpers.php` en premier, donc même une erreur de connexion MySQL renvoie un JSON propre (et non une erreur CORS).
+
+### Si vous voyez encore une erreur CORS
+- Vérifier qu'Apache a bien `mod_headers` et `mod_rewrite` activés
+  (XAMPP : décommenter dans `httpd.conf` les lignes
+  `LoadModule headers_module ...` et `LoadModule rewrite_module ...`, puis redémarrer Apache).
+- Vérifier que `AllowOverride All` est défini pour le `DocumentRoot` (sinon `.htaccess` est ignoré).
+- Recharger la page après avoir importé `database.sql` — une erreur SQL renverra maintenant un JSON 500 (pas un blocage CORS).
+
+En production, restreindre `Access-Control-Allow-Origin` à votre domaine.
 
 ---
 
