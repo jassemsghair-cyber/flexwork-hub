@@ -1,47 +1,48 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/helpers.php';
 
-require_once 'db.php';
+cors_and_json(['POST']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+$data = read_json_body();
+$email    = isset($data['email'])    ? trim((string)$data['email'])    : '';
+$password = isset($data['password']) ? (string)$data['password']        : '';
+
+if ($email === '' || $password === '') {
+    json_err("Email et mot de passe requis", 400);
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée"]);
-    exit;
-}
-
-$email = $_POST['email'] ?? '';
-$password = $_POST['password'] ?? '';
-
-if (empty($email) || empty($password)) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Email et mot de passe requis"]);
-    exit;
-}
-
-// Vérifier dans la base de données
-$stmt = $conn->prepare("SELECT id, name, email, role FROM users WHERE email = ? AND password = ?");
-$stmt->bind_param("ss", $email, $password);
+$stmt = $conn->prepare("SELECT id, name, email, password, role, statut, telephone, ville,
+                               disponibilites, competences, cv,
+                               entreprise, secteur, logo, created_at
+                        FROM users WHERE email = ?");
+$stmt->bind_param("s", $email);
 $stmt->execute();
-$result = $stmt->get_result();
+$res = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-    echo json_encode([
-        "success" => true,
-        "message" => "Connexion réussie",
-        "user" => $user
-    ]);
-} else {
-    http_response_code(401);
-    echo json_encode(["success" => false, "message" => "Email ou mot de passe incorrect"]);
+if ($res->num_rows === 0) {
+    $stmt->close(); $conn->close();
+    json_err("Email ou mot de passe incorrect", 401);
 }
 
+$user = $res->fetch_assoc();
 $stmt->close();
 $conn->close();
+
+// Vérifier mot de passe (compatible bcrypt + plain text en fallback)
+$ok = false;
+if (password_verify($password, $user['password'])) {
+    $ok = true;
+} elseif ($user['password'] === $password) {
+    // Compatibilité legacy avec d'anciens comptes en clair
+    $ok = true;
+}
+
+if (!$ok) json_err("Email ou mot de passe incorrect", 401);
+if ($user['statut'] === 'bloque') json_err("Votre compte est bloqué. Contactez l'administrateur.", 403);
+
+unset($user['password']);
+$user['disponibilites'] = $user['disponibilites'] ? array_values(array_filter(array_map('trim', explode(',', $user['disponibilites'])))) : [];
+$user['competences']    = $user['competences']    ? array_values(array_filter(array_map('trim', explode(',', $user['competences'])))) : [];
+
+json_ok(["user" => $user], "Connexion réussie");

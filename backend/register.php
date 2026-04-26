@@ -1,66 +1,70 @@
 <?php
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-header("Content-Type: application/json; charset=UTF-8");
+require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/helpers.php';
 
-require_once 'db.php';
+cors_and_json(['POST']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
+$data = read_json_body();
+$name     = isset($data['name'])     ? trim((string)$data['name'])     : '';
+$email    = isset($data['email'])    ? trim((string)$data['email'])    : '';
+$password = isset($data['password']) ? (string)$data['password']        : '';
+$role     = isset($data['role'])     ? trim((string)$data['role'])     : 'candidat';
+$telephone= isset($data['telephone'])? trim((string)$data['telephone']): null;
+$ville    = isset($data['ville'])    ? trim((string)$data['ville'])    : null;
+$entreprise = isset($data['entreprise']) ? trim((string)$data['entreprise']) : null;
+$secteur    = isset($data['secteur'])    ? trim((string)$data['secteur'])    : null;
+$logo       = null;
+
+if ($name === '' || $email === '' || $password === '') {
+    json_err("Nom, email et mot de passe requis", 400);
+}
+if (!in_array($role, ['candidat','employeur'], true)) {
+    json_err("Rôle invalide", 400);
+}
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    json_err("Email invalide", 400);
+}
+if (strlen($password) < 6) {
+    json_err("Le mot de passe doit faire au moins 6 caractères", 400);
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(["success" => false, "message" => "Méthode non autorisée"]);
-    exit;
+if ($role === 'employeur') {
+    if ($entreprise === null || $entreprise === '') $entreprise = $name;
+    $logo = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $entreprise) ?: $entreprise, 0, 2));
 }
 
-$name = $_POST['name'] ?? '';
-$email = $_POST['email'] ?? '';
-$password = $_POST['password'] ?? '';
-$role = $_POST['role'] ?? 'candidat';
-
-if (empty($name) || empty($email) || empty($password)) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Nom, email et mot de passe requis"]);
-    exit;
-}
-
-// Vérifier si l'email existe déjà
+// Email unique
 $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-    http_response_code(409);
-    echo json_encode(["success" => false, "message" => "Cet email est déjà utilisé"]);
-    $stmt->close();
-    $conn->close();
-    exit;
+if ($stmt->get_result()->num_rows > 0) {
+    $stmt->close(); $conn->close();
+    json_err("Cet email est déjà utilisé", 409);
 }
 $stmt->close();
 
-// Insérer le nouvel utilisateur
-$stmt = $conn->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
-$stmt->bind_param("ssss", $name, $email, $password, $role);
+$hash = password_hash($password, PASSWORD_DEFAULT);
 
-if ($stmt->execute()) {
-    $user_id = $conn->insert_id;
-    echo json_encode([
-        "success" => true,
-        "message" => "Inscription réussie",
-        "user" => [
-            "id" => $user_id,
-            "name" => $name,
-            "email" => $email
-        ]
-    ]);
-} else {
-    http_response_code(500);
-    echo json_encode(["success" => false, "message" => "Erreur lors de l'inscription"]);
+$stmt = $conn->prepare("INSERT INTO users (name, email, password, role, telephone, ville, entreprise, secteur, logo)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("sssssssss", $name, $email, $hash, $role, $telephone, $ville, $entreprise, $secteur, $logo);
+
+if (!$stmt->execute()) {
+    json_err("Erreur lors de l'inscription", 500);
 }
-
+$id = $conn->insert_id;
 $stmt->close();
 $conn->close();
+
+json_ok(["user" => [
+    "id"         => $id,
+    "name"       => $name,
+    "email"      => $email,
+    "role"       => $role,
+    "statut"     => "actif",
+    "telephone"  => $telephone,
+    "ville"      => $ville,
+    "entreprise" => $entreprise,
+    "secteur"    => $secteur,
+    "logo"       => $logo,
+]], "Inscription réussie");
