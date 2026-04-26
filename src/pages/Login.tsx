@@ -1,10 +1,45 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('password', password);
+
+    try {
+      const response = await fetch('http://localhost/flexwork-backend/login.php', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/');
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Erreur de connexion au serveur');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -26,12 +61,24 @@ export default function Login() {
           <h1 className="font-heading font-bold text-3xl mb-2">Connexion</h1>
           <p className="text-muted-foreground mb-8">Connectez-vous à votre compte FlexWork</p>
 
-          <form className="space-y-5" onSubmit={e => e.preventDefault()}>
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {error && (
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-btn text-destructive text-sm">
+                {error}
+              </div>
+            )}
             <div>
               <label className="text-sm font-medium mb-2 block">Email</label>
               <div className="flex items-center gap-2 px-4 py-3 glass rounded-btn focus-within:ring-2 focus-within:ring-primary/50">
                 <Mail size={18} className="text-muted-foreground" />
-                <input type="email" placeholder="votre@email.tn" className="bg-transparent text-sm w-full outline-none" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre@email.tn"
+                  className="bg-transparent text-sm w-full outline-none"
+                  required
+                />
               </div>
             </div>
 
@@ -39,7 +86,14 @@ export default function Login() {
               <label className="text-sm font-medium mb-2 block">Mot de passe</label>
               <div className="flex items-center gap-2 px-4 py-3 glass rounded-btn focus-within:ring-2 focus-within:ring-primary/50">
                 <Lock size={18} className="text-muted-foreground" />
-                <input type={showPassword ? "text" : "password"} placeholder="••••••••" className="bg-transparent text-sm w-full outline-none" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-transparent text-sm w-full outline-none"
+                  required
+                />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-muted-foreground hover:text-foreground">
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -54,8 +108,12 @@ export default function Login() {
               <a href="#" className="text-sm text-primary hover:opacity-80">Mot de passe oublié ?</a>
             </div>
 
-            <button type="submit" className="w-full py-3 bg-primary text-primary-foreground rounded-btn font-medium btn-press hover:opacity-90 transition-opacity">
-              Se connecter
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-btn font-medium btn-press hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
 

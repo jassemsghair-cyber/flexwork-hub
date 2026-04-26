@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { User, Building2, ArrowLeft, ArrowRight } from "lucide-react";
 import { SECTEURS } from "@/lib/data";
@@ -7,6 +7,49 @@ import { SECTEURS } from "@/lib/data";
 export default function Register() {
   const [step, setStep] = useState(1);
   const [role, setRole] = useState<"candidat" | "employeur" | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    company: "",
+    sector: "",
+    phone: ""
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const data = new FormData();
+    data.append('name', role === 'employeur' ? formData.company : formData.name);
+    data.append('email', formData.email);
+    data.append('password', formData.password);
+    data.append('role', role || 'candidat');
+
+    try {
+      const response = await fetch('http://localhost/flexwork-backend/register.php', {
+        method: 'POST',
+        body: data,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        localStorage.setItem('user', JSON.stringify(result.user));
+        navigate('/login');
+      } else {
+        setError(result.message);
+      }
+    } catch (err) {
+      setError('Erreur de connexion au serveur');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen">
@@ -89,13 +132,25 @@ export default function Register() {
                 <p className="text-muted-foreground">Remplissez vos informations pour commencer</p>
               </div>
 
-              <form className="glass rounded-card p-8 space-y-5" onSubmit={e => e.preventDefault()}>
+              <form className="glass rounded-card p-8 space-y-5" onSubmit={handleSubmit}>
+                {error && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-btn text-destructive text-sm">
+                    {error}
+                  </div>
+                )}
                 {role === "candidat" ? (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium mb-2 block">Nom</label>
-                        <input type="text" placeholder="Ben Ali" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                        <input
+                          type="text"
+                          value={formData.name}
+                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          placeholder="Ben Ali"
+                          className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                          required
+                        />
                       </div>
                       <div>
                         <label className="text-sm font-medium mb-2 block">Prénom</label>
@@ -104,11 +159,25 @@ export default function Register() {
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Email</label>
-                      <input type="email" placeholder="yasmine@email.tn" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        placeholder="yasmine@email.tn"
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Mot de passe</label>
-                      <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-3 block">Disponibilités</label>
@@ -125,26 +194,58 @@ export default function Register() {
                   <>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Nom de l'entreprise</label>
-                      <input type="text" placeholder="Mon Entreprise" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                      <input
+                        type="text"
+                        value={formData.company}
+                        onChange={(e) => setFormData({...formData, company: e.target.value})}
+                        placeholder="Mon Entreprise"
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Secteur d'activité</label>
-                      <select className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50">
+                      <select
+                        value={formData.sector}
+                        onChange={(e) => setFormData({...formData, sector: e.target.value})}
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      >
                         <option value="">Sélectionner un secteur</option>
-                        {SECTEURS.map(s => <option key={s}>{s}</option>)}
+                        {SECTEURS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Email professionnel</label>
-                      <input type="email" placeholder="contact@entreprise.tn" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                        placeholder="contact@entreprise.tn"
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Mot de passe</label>
-                      <input type="password" placeholder="••••••••" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                      <input
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-2 block">Téléphone</label>
-                      <input type="tel" placeholder="+216 XX XXX XXX" className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50" />
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                        placeholder="+216 XX XXX XXX"
+                        className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                      />
                     </div>
                   </>
                 )}
@@ -159,9 +260,10 @@ export default function Register() {
                   </button>
                   <button
                     type="submit"
-                    className="px-8 py-3 bg-primary text-primary-foreground rounded-btn font-medium btn-press hover:opacity-90 transition-opacity"
+                    disabled={loading}
+                    className="px-8 py-3 bg-primary text-primary-foreground rounded-btn font-medium btn-press hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
-                    Créer mon compte
+                    {loading ? "Création..." : "Créer mon compte"}
                   </button>
                 </div>
               </form>
