@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { User, Building2, ArrowLeft, ArrowRight } from "lucide-react";
 import { SECTEURS } from "@/lib/data";
+import { authApi, setCurrentUser } from "@/lib/api";
 
 export default function Register() {
   const [step, setStep] = useState(1);
@@ -21,33 +22,25 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!role) return;
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch('http://localhost/flexwork-backend/register.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          role
-        }),
+      const data = await authApi.register({
+        name: role === "employeur" && formData.company ? formData.company : formData.name,
+        email: formData.email,
+        password: formData.password,
+        role,
+        telephone: formData.phone || undefined,
+        entreprise: role === "employeur" ? formData.company : undefined,
+        secteur:    role === "employeur" ? formData.sector  : undefined,
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/login'); // Rediriger vers login après inscription
-      } else {
-        setError(data.message);
-      }
+      setCurrentUser(data.user);
+      if (data.user.role === "employeur") navigate("/employeur/dashboard");
+      else                                 navigate("/candidat/profil");
     } catch (err) {
-      setError('Erreur de connexion au serveur');
+      setError(err instanceof Error ? err.message : "Erreur lors de l'inscription");
     } finally {
       setLoading(false);
     }
