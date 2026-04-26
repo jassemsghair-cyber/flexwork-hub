@@ -1,14 +1,37 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
 import Badge from "@/components/Badge";
 import { OFFRES, formatSalaire, formatDate } from "@/lib/data";
-import { ArrowLeft, MapPin, Clock, Calendar, Share2, Briefcase } from "lucide-react";
+import { candidaturesApi } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, MapPin, Clock, Calendar, Share2, Briefcase, Loader2 } from "lucide-react";
+
+const CURRENT_CANDIDAT_ID = 1; // TODO: replace with auth
 
 export default function OffreDetail() {
   const { id } = useParams();
   const offre = OFFRES.find(o => o.id === Number(id));
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
+  const { toast } = useToast();
+
+  const handleApply = async () => {
+    if (!offre) return;
+    setApplying(true);
+    try {
+      await candidaturesApi.apply({ job_id: offre.id, candidat_id: CURRENT_CANDIDAT_ID });
+      setApplied(true);
+      toast({ title: "Candidature envoyée", description: `Votre candidature pour "${offre.titre}" a été enregistrée.` });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur";
+      toast({ title: "Impossible de postuler", description: msg, variant: "destructive" });
+    } finally {
+      setApplying(false);
+    }
+  };
 
   if (!offre) {
     return (
@@ -110,12 +133,14 @@ export default function OffreDetail() {
                   </div>
                 </div>
 
-                <Link
-                  to="/login"
-                  className="block w-full py-3 bg-primary text-primary-foreground rounded-btn font-medium text-center btn-press hover:opacity-90 transition-opacity"
+                <button
+                  onClick={handleApply}
+                  disabled={applying || applied}
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-primary text-primary-foreground rounded-btn font-medium btn-press hover:opacity-90 transition-opacity disabled:opacity-60"
                 >
-                  Postuler maintenant
-                </Link>
+                  {applying && <Loader2 size={16} className="animate-spin" />}
+                  {applied ? "Candidature envoyée ✓" : applying ? "Envoi..." : "Postuler maintenant"}
+                </button>
 
                 <div className="flex justify-center gap-4 pt-2">
                   <button className="text-muted-foreground hover:text-foreground transition-colors">
