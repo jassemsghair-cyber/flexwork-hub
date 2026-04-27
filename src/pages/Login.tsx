@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
-import { authApi, setCurrentUser } from "@/lib/api";
+import { authApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,6 +12,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +21,7 @@ export default function Login() {
 
     try {
       const data = await authApi.login(email, password);
-      setCurrentUser(data.user);
+      login(data.user);
       // Redirection selon le rôle
       if (data.user.role === "admin")          navigate("/admin/dashboard");
       else if (data.user.role === "employeur") navigate("/employeur/dashboard");

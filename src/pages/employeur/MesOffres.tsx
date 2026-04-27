@@ -3,12 +3,14 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Badge from "@/components/Badge";
-import { jobsApi, getCurrentUser, ApiEmployeurJob } from "@/lib/api";
+import { jobsApi, ApiEmployeurJob } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { formatSalaire } from "@/lib/data";
 
 export default function MesOffres() {
+  const { user } = useAuth();
   const [offres, setOffres] = useState<ApiEmployeurJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +18,6 @@ export default function MesOffres() {
   const { toast } = useToast();
 
   const load = () => {
-    const user = getCurrentUser();
     if (!user || user.role !== "employeur") {
       setError("Connectez-vous comme employeur pour voir vos offres.");
       setLoading(false);
@@ -29,7 +30,7 @@ export default function MesOffres() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(load, [user?.id]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Supprimer cette offre ? Toutes les candidatures associées seront supprimées.")) return;

@@ -6,10 +6,8 @@ import StatCard from "@/components/StatCard";
 import Badge from "@/components/Badge";
 import { CANDIDATURES, OFFRES, formatDate } from "@/lib/data";
 import { candidaturesApi, type ApiCandidatureCandidate } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { FileText, Clock, CheckCircle, XCircle, Briefcase, Loader2, AlertTriangle } from "lucide-react";
-
-// Currently signed-in candidate id. Replace with real auth later.
-const CURRENT_CANDIDAT_ID = 1;
 
 type Row = {
   id: number;
@@ -23,16 +21,22 @@ type Row = {
 };
 
 export default function CandidatCandidatures() {
+  const { user } = useAuth();
   const [filter, setFilter] = useState<string>("all");
   const [rows, setRows] = useState<Row[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setLoading(true);
     candidaturesApi
-      .listByCandidate(CURRENT_CANDIDAT_ID)
+      .listByCandidate(user.id)
       .then((res) => {
         if (cancelled) return;
         const mapped: Row[] = (res.candidatures as ApiCandidatureCandidate[]).map((c) => ({
@@ -41,7 +45,7 @@ export default function CandidatCandidatures() {
           offre_titre: c.offre_titre,
           entreprise: c.entreprise,
           lieu: c.lieu,
-          logo: c.entreprise.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+          logo: c.entreprise ? c.entreprise.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "??",
           date_postulation: c.date_postulation,
           statut: c.statut,
         }));
@@ -51,15 +55,15 @@ export default function CandidatCandidatures() {
       .catch(() => {
         if (cancelled) return;
         // Fallback to mock data when PHP backend isn't running
-        const mock = CANDIDATURES.filter((c) => c.candidat_id === CURRENT_CANDIDAT_ID).map((c) => {
-          const o = OFFRES.find((x) => x.id === c.offre_id)!;
+        const mock = CANDIDATURES.filter((c) => c.candidat_id === user.id).map((c) => {
+          const o = OFFRES.find((x) => x.id === c.offre_id);
           return {
             id: c.id,
             offre_id: c.offre_id,
-            offre_titre: o.titre,
-            entreprise: o.entreprise,
-            lieu: o.lieu,
-            logo: o.logo,
+            offre_titre: o?.titre || "Offre supprimée",
+            entreprise: o?.entreprise || "—",
+            lieu: o?.lieu || "—",
+            logo: o?.logo || "??",
             date_postulation: c.date_postulation,
             statut: c.statut,
           };
@@ -71,7 +75,7 @@ export default function CandidatCandidatures() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user?.id]);
 
   const myCandidatures = rows ?? [];
   const filtered = useMemo(() => {

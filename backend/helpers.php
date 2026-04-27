@@ -6,16 +6,6 @@
 // Otherwise the browser blocks the response with a CORS error.
 // ============================================================
 
-// Send permissive CORS headers as early as possible.
-// Echoed for EVERY request hitting any file that includes helpers.php.
-if (!headers_sent()) {
-    header("Access-Control-Allow-Origin: *");
-    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-    header("Access-Control-Max-Age: 86400");
-    header("Content-Type: application/json; charset=UTF-8");
-}
-
 // Answer preflight immediately — no method check, no DB, no nothing.
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
     http_response_code(204);

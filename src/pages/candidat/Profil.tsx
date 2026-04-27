@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CANDIDATS } from "@/lib/data";
-import { usersApi, getCurrentUser, setCurrentUser, AuthUser } from "@/lib/api";
+import { usersApi, AuthUser } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, X, Plus, Loader2, AlertTriangle } from "lucide-react";
 
 const DISPOS = ["Matin", "Soir", "Weekend", "Flexible"];
 
 export default function CandidatProfil() {
-  const sessionUser = getCurrentUser();
+  const { user: sessionUser, updateUser } = useAuth();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export default function CandidatProfil() {
         disponibilites, competences,
       });
       setUser(data.user);
-      setCurrentUser(data.user);
+      updateUser(data.user);
       toast({ title: "Profil enregistré", description: "Vos modifications ont été sauvegardées." });
     } catch (e) {
       toast({ title: "Erreur", description: e instanceof Error ? e.message : "Impossible", variant: "destructive" });

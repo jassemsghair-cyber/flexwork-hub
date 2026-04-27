@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import Badge from "@/components/Badge";
 import { OFFRES, CANDIDATURES, CANDIDATS, formatDate } from "@/lib/data";
 import { candidaturesApi, type ApiCandidatureForJob } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { CheckCircle, XCircle, User, Loader2, AlertTriangle } from "lucide-react";
 
 type Row = {
@@ -18,8 +19,15 @@ type Row = {
 };
 
 export default function EmployeurCandidatures() {
-  const mesOffres = OFFRES.filter(o => ["Café Médina", "Brew House Café"].includes(o.entreprise));
-  const [selectedOffre, setSelectedOffre] = useState(mesOffres[0]?.id || 0);
+  const { user } = useAuth();
+  const mesOffres = OFFRES.filter(o => o.entreprise === user?.entreprise || o.entreprise === user?.name);
+  const [selectedOffre, setSelectedOffre] = useState(0);
+
+  useEffect(() => {
+    if (mesOffres.length > 0 && selectedOffre === 0) {
+      setSelectedOffre(mesOffres[0].id);
+    }
+  }, [mesOffres, selectedOffre]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);

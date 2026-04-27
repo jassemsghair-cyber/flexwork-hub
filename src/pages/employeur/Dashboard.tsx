@@ -4,7 +4,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StatCard from "@/components/StatCard";
 import Badge from "@/components/Badge";
-import { jobsApi, getCurrentUser } from "@/lib/api";
+import { jobsApi, AuthUser } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { formatDate } from "@/lib/data";
 import { Briefcase, Users, Clock, CheckCircle, Plus, Loader2, AlertTriangle } from "lucide-react";
 
@@ -14,7 +15,7 @@ interface DashboardData {
 }
 
 export default function EmployeurDashboard() {
-  const user = getCurrentUser();
+  const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

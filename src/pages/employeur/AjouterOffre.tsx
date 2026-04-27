@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { SECTEURS, VILLES, HORAIRES } from "@/lib/data";
-import { jobsApi, getCurrentUser } from "@/lib/api";
+import { jobsApi, AuthUser } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, Eye, Loader2 } from "lucide-react";
 
 export default function AjouterOffre() {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -36,7 +38,6 @@ export default function AjouterOffre() {
   };
 
   const handleSubmit = async () => {
-    const user = getCurrentUser();
     if (!user || user.role !== "employeur") {
       toast({ title: "Accès refusé", description: "Connectez-vous comme employeur.", variant: "destructive" });
       navigate("/login");

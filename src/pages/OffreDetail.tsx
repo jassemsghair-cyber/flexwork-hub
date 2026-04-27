@@ -5,7 +5,8 @@ import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
 import Badge from "@/components/Badge";
 import { OFFRES, formatSalaire, formatDate, Offre } from "@/lib/data";
-import { candidaturesApi, jobsApi, getCurrentUser, ApiJob } from "@/lib/api";
+import { candidaturesApi, jobsApi, ApiJob } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, MapPin, Clock, Calendar, Share2, Briefcase, Loader2 } from "lucide-react";
 
@@ -30,6 +31,7 @@ function apiToOffre(j: ApiJob): Offre {
 export default function OffreDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [offre, setOffre] = useState<Offre | null>(null);
   const [similar, setSimilar] = useState<Offre[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +65,6 @@ export default function OffreDetail() {
 
   const handleApply = async () => {
     if (!offre) return;
-    const user = getCurrentUser();
     if (!user) {
       toast({ title: "Connexion requise", description: "Veuillez vous connecter pour postuler.", variant: "destructive" });
       navigate("/login");

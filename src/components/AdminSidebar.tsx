@@ -1,10 +1,13 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import { LayoutDashboard, Users, Briefcase, LogOut } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const isActive = (path: string) => location.pathname === path;
 
   const links = [
@@ -12,6 +15,11 @@ export default function AdminSidebar() {
     { path: "/admin/utilisateurs", label: "Utilisateurs", icon: Users },
     { path: "/admin/offres", label: "Offres", icon: Briefcase },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
     <aside className="w-[280px] h-screen fixed left-0 top-0 glass-strong border-r border-white/[0.06] flex flex-col z-40">
@@ -45,12 +53,18 @@ export default function AdminSidebar() {
       <div className="p-4 border-t border-border space-y-3">
         <div className="px-4"><ThemeToggle /></div>
         <div className="flex items-center gap-3 px-4 py-3">
-          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">AD</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">Admin</p>
-            <p className="text-xs text-muted-foreground">admin@flexwork.tn</p>
+          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
+            {user ? user.name[0].toUpperCase() : "AD"}
           </div>
-          <LogOut size={16} className="text-muted-foreground cursor-pointer hover:text-destructive transition-colors" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{user?.name || "Admin"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email || "admin@flexwork.tn"}</p>
+          </div>
+          <LogOut 
+            size={16} 
+            className="text-muted-foreground cursor-pointer hover:text-destructive transition-colors" 
+            onClick={handleLogout}
+          />
         </div>
       </div>
     </aside>

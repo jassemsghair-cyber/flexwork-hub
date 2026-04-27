@@ -19,34 +19,38 @@ import AdminUtilisateurs from "./pages/admin/Utilisateurs";
 import AdminOffres from "./pages/admin/Offres";
 import NotFound from "./pages/NotFound";
 
+import { AuthProvider } from "./contexts/AuthContext";
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <ThemeProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/offres" element={<Offres />} />
-            <Route path="/offre/:id" element={<OffreDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/candidat/profil" element={<CandidatProfil />} />
-            <Route path="/candidat/candidatures" element={<CandidatCandidatures />} />
-            <Route path="/employeur/dashboard" element={<EmployeurDashboard />} />
-            <Route path="/employeur/ajouter-offre" element={<AjouterOffre />} />
-            <Route path="/employeur/mes-offres" element={<MesOffres />} />
-            <Route path="/employeur/candidatures" element={<EmployeurCandidatures />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />
-            <Route path="/admin/offres" element={<AdminOffres />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/offres" element={<Offres />} />
+              <Route path="/offre/:id" element={<OffreDetail />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/candidat/profil" element={<CandidatProfil />} />
+              <Route path="/candidat/candidatures" element={<CandidatCandidatures />} />
+              <Route path="/employeur/dashboard" element={<EmployeurDashboard />} />
+              <Route path="/employeur/ajouter-offre" element={<AjouterOffre />} />
+              <Route path="/employeur/mes-offres" element={<MesOffres />} />
+              <Route path="/employeur/candidatures" element={<EmployeurCandidatures />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />
+              <Route path="/admin/offres" element={<AdminOffres />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AuthProvider>
   </ThemeProvider>
 );
 
