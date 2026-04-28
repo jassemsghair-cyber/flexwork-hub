@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
 import Badge from "@/components/Badge";
-import { OFFRES, formatSalaire, formatDate, Offre } from "@/lib/data";
+import { formatSalaire, formatDate, Offre } from "@/lib/data";
 import { candidaturesApi, jobsApi, ApiJob } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -53,12 +53,9 @@ export default function OffreDetail() {
         }).catch(() => {});
       })
       .catch(() => {
-        // Fallback mocks
-        const fallback = OFFRES.find((o) => o.id === jobId) || null;
-        setOffre(fallback);
-        if (fallback) {
-          setSimilar(OFFRES.filter((o) => o.secteur === fallback.secteur && o.id !== fallback.id).slice(0, 3));
-        }
+        // Fallback offline : plus de mocks, on laisse null
+        setOffre(null);
+        setSimilar([]);
       })
       .finally(() => setLoading(false));
   }, [id]);

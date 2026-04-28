@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/AdminSidebar";
 import Badge from "@/components/Badge";
-import { OFFRES, formatDate } from "@/lib/data";
+import { formatDate } from "@/lib/data";
 import { adminApi, type ApiJob } from "@/lib/api";
 import { Bell, Eye, CheckCircle, XCircle, Trash2, Loader2, AlertTriangle } from "lucide-react";
 
@@ -20,7 +20,6 @@ export default function AdminOffres() {
   const [filter, setFilter] = useState<string>("all");
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
   const { toast } = useToast();
 
   const load = () => {
@@ -38,22 +37,9 @@ export default function AdminOffres() {
           logo: j.entreprise.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
         }));
         setRows(mapped);
-        setUsingFallback(false);
       })
       .catch(() => {
-        const fallback = OFFRES
-          .filter((o) => filter === "all" || o.statut === filter)
-          .map((o) => ({
-            id: o.id,
-            titre: o.titre,
-            entreprise: o.entreprise,
-            secteur: o.secteur,
-            date_publication: o.date_publication,
-            statut: o.statut,
-            logo: o.logo,
-          })) as Row[];
-        setRows(fallback);
-        setUsingFallback(true);
+        setRows([]);
       })
       .finally(() => setLoading(false));
   };
@@ -114,11 +100,7 @@ export default function AdminOffres() {
           </div>
         </div>
 
-        {usingFallback && (
-          <div className="mb-4 flex items-center gap-2 text-xs text-warning fade-up">
-            <AlertTriangle size={14} /> Backend PHP indisponible — données de démonstration.
-          </div>
-        )}
+
 
         {/* Filter Tabs */}
         <div className="flex gap-2 mb-6 fade-up stagger-1">

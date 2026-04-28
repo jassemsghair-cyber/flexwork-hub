@@ -3,8 +3,27 @@ import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
-import { OFFRES, SECTEURS } from "@/lib/data";
+import { Offre } from "@/lib/data";
+import { jobsApi, lookupsApi, ApiJob } from "@/lib/api";
 import { Search, MapPin, Briefcase, ArrowRight, UserPlus, Send, CheckCircle, Star, Quote } from "lucide-react";
+
+function apiToOffre(j: ApiJob): Offre {
+  return {
+    id: j.id,
+    titre: j.title,
+    entreprise: j.entreprise || "—",
+    logo: j.logo || (j.entreprise ? j.entreprise.slice(0, 2).toUpperCase() : "??"),
+    lieu: j.lieu || "—",
+    secteur: j.secteur || "—",
+    salaire: parseFloat(j.salaire || "0"),
+    horaire: j.horaire || "—",
+    type: j.type || "Temps partiel",
+    description: j.description || "",
+    competences: j.competences || [],
+    date_publication: j.created_at,
+    statut: (j.statut === "active" || j.statut === "en_attente" || j.statut === "rejetee") ? j.statut : "active",
+  };
+}
 
 function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
   const [count, setCount] = useState(0);
@@ -37,12 +56,26 @@ function Counter({ target, suffix = "" }: { target: number; suffix?: string }) {
 }
 
 export default function Index() {
-  const featuredJobs = OFFRES.filter(o => o.statut === "active").slice(0, 6);
+  const [featuredJobs, setFeaturedJobs] = useState<Offre[]>([]);
+  const [dbSecteurs, setDbSecteurs] = useState<string[]>([]);
+  const [dbVilles, setDbVilles] = useState<string[]>([]);
 
-  const sectorCounts = SECTEURS.map(s => ({
-    name: s,
-    count: OFFRES.filter(o => o.secteur === s).length
-  }));
+  useEffect(() => {
+    // Fetch recent active jobs
+    jobsApi.list({ sort: "recent", statut: "active" })
+      .then(data => {
+        setFeaturedJobs(data.jobs.slice(0, 6).map(apiToOffre));
+      })
+      .catch(console.error);
+
+    // Fetch lookups
+    lookupsApi.lists()
+      .then(data => {
+        setDbSecteurs(data.secteurs || []);
+        setDbVilles(data.villes || []);
+      })
+      .catch(console.error);
+  }, []);
 
   const steps = [
     { icon: <UserPlus size={28} />, title: "Inscrivez-vous", desc: "Créez votre profil en quelques minutes, que vous soyez candidat ou employeur." },
@@ -87,16 +120,14 @@ export default function Index() {
                 <MapPin size={18} className="text-muted-foreground" />
                 <select className="bg-transparent text-sm outline-none text-muted-foreground">
                   <option>Toutes les villes</option>
-                  <option>Tunis</option>
-                  <option>Sousse</option>
-                  <option>Sfax</option>
+                  {dbVilles.map(v => <option key={v}>{v}</option>)}
                 </select>
               </div>
               <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 rounded-btn">
                 <Briefcase size={18} className="text-muted-foreground" />
                 <select className="bg-transparent text-sm outline-none text-muted-foreground">
                   <option>Tous les secteurs</option>
-                  {SECTEURS.map(s => <option key={s}>{s}</option>)}
+                  {dbSecteurs.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
               <Link to="/offres" className="px-6 py-3 bg-primary text-primary-foreground rounded-btn font-medium text-sm btn-press hover:opacity-90 transition-opacity text-center whitespace-nowrap">
@@ -167,14 +198,13 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <h2 className="font-heading font-bold text-3xl md:text-4xl text-center mb-12">Secteurs populaires</h2>
           <div className="flex flex-wrap justify-center gap-3">
-            {sectorCounts.map(({ name, count }) => (
+            {dbSecteurs.map((name) => (
               <Link
                 key={name}
                 to={`/offres?secteur=${name}`}
                 className="glass rounded-full px-5 py-2.5 text-sm font-medium card-hover flex items-center gap-2"
               >
                 {name}
-                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">{count}</span>
               </Link>
             ))}
           </div>

@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CANDIDATS } from "@/lib/data";
 import { usersApi, AuthUser } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, X, Plus, Loader2, AlertTriangle } from "lucide-react";
+import { Upload, X, Plus, Loader2, AlertTriangle, CheckCircle } from "lucide-react";
 
 const DISPOS = ["Matin", "Soir", "Weekend", "Flexible"];
 
@@ -15,6 +14,7 @@ export default function CandidatProfil() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { toast } = useToast();
 
   // Form fields
@@ -29,11 +29,10 @@ export default function CandidatProfil() {
   useEffect(() => {
     if (!sessionUser) {
       // Fallback démo
-      const demo = CANDIDATS[0];
       const fakeUser: AuthUser = {
-        id: 0, name: `${demo.prenom} ${demo.nom}`, email: demo.email,
-        role: "candidat", statut: "actif", telephone: demo.telephone, ville: demo.ville,
-        disponibilites: demo.disponibilites, competences: demo.competences,
+        id: 0, name: `Yasmine Ben Ali`, email: "yasmine.benali@email.tn",
+        role: "candidat", statut: "actif", telephone: "+216 55 123 456", ville: "Tunis",
+        disponibilites: ["Soir", "Weekend"], competences: ["Service client", "Communication", "Anglais"],
       };
       setUser(fakeUser);
       setError("Mode démo — connectez-vous pour modifier votre vrai profil.");
@@ -75,7 +74,7 @@ export default function CandidatProfil() {
       });
       setUser(data.user);
       updateUser(data.user);
-      toast({ title: "Profil enregistré", description: "Vos modifications ont été sauvegardées." });
+      setShowSuccess(true);
     } catch (e) {
       toast({ title: "Erreur", description: e instanceof Error ? e.message : "Impossible", variant: "destructive" });
     } finally {
@@ -207,6 +206,27 @@ export default function CandidatProfil() {
           </div>
         </div>
       </div>
+
+      {/* Premium Success Dialog */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 fade-up" style={{ animationDuration: "0.2s" }}>
+          <div className="glass-strong rounded-card p-8 max-w-sm w-full text-center shadow-2xl border-success/30 relative" style={{ animation: "scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards" }}>
+            <div className="w-20 h-20 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="text-success w-10 h-10" />
+            </div>
+            <h3 className="font-heading font-bold text-2xl mb-2 text-foreground">Profil mis à jour !</h3>
+            <p className="text-muted-foreground mb-8">
+              Vos informations ont été enregistrées avec succès.
+            </p>
+            <button
+              onClick={() => setShowSuccess(false)}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-btn font-medium btn-press hover:opacity-90 transition-opacity"
+            >
+              Continuer
+            </button>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

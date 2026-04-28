@@ -61,10 +61,18 @@ export default function EmployeurDashboard() {
           ) : data ? (
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 fade-up stagger-1">
-                <StatCard label="Offres actives"      value={data.stats.offres_actives}        icon={<Briefcase size={20} />} color="primary" />
-                <StatCard label="En attente"          value={data.stats.offres_en_attente}     icon={<Clock size={20} />}     color="muted" />
-                <StatCard label="Total candidatures"  value={data.stats.candidatures_total}    icon={<Users size={20} />}     color="success" />
-                <StatCard label="À traiter"           value={data.stats.candidatures_en_attente} icon={<CheckCircle size={20} />} color="primary" />
+                <Link to="/employeur/candidatures" className="block">
+                  <StatCard label="Offres actives"      value={data.stats.offres_actives}        icon={<Briefcase size={20} />} color="primary" />
+                </Link>
+                <Link to="/employeur/candidatures?statut=en_attente" className="block">
+                  <StatCard label="En attente"          value={data.stats.offres_en_attente}     icon={<Clock size={20} />}     color="muted" />
+                </Link>
+                <Link to="/employeur/candidatures" className="block">
+                  <StatCard label="Total candidatures"  value={data.stats.candidatures_total}    icon={<Users size={20} />}     color="success" />
+                </Link>
+                <Link to="/employeur/candidatures?statut=en_attente" className="block">
+                  <StatCard label="À traiter"           value={data.stats.candidatures_en_attente} icon={<CheckCircle size={20} />} color="primary" />
+                </Link>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
@@ -77,7 +85,11 @@ export default function EmployeurDashboard() {
                     {data.activity.map((act) => {
                       const initials = act.candidat_nom.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
                       return (
-                        <div key={act.id} className="flex items-center gap-3 p-3 rounded-btn hover:bg-muted/30 transition-colors">
+                        <Link 
+                          key={act.id} 
+                          to={`/employeur/candidatures?job=${act.job_id}`}
+                          className="flex items-center gap-3 p-3 rounded-btn hover:bg-muted/30 transition-colors"
+                        >
                           <div className="w-9 h-9 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
                             {initials}
                           </div>
@@ -85,7 +97,7 @@ export default function EmployeurDashboard() {
                             <p className="text-sm">
                               <span className="font-medium">{act.candidat_nom}</span>
                               <span className="text-muted-foreground"> a postulé pour </span>
-                              <span className="font-medium">{act.job_title}</span>
+                              <span className="font-medium text-primary">{act.job_title}</span>
                             </p>
                             <p className="text-xs text-muted-foreground">{formatDate(act.created_at)}</p>
                           </div>
@@ -93,7 +105,7 @@ export default function EmployeurDashboard() {
                             text={act.statut === "acceptee" ? "Acceptée" : act.statut === "refusee" ? "Refusée" : "En attente"}
                             variant={act.statut === "acceptee" ? "success" : act.statut === "refusee" ? "destructive" : "warning"}
                           />
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>

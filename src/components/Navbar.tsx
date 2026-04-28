@@ -69,7 +69,7 @@ export default function Navbar({ userRole: propUserRole = null }: NavbarProps) {
             {role === "employeur" && (
               <>
                 <Link to="/employeur/dashboard" className={linkClass("/employeur/dashboard")}>Dashboard</Link>
-                <Link to="/employeur/mes-offres" className={linkClass("/employeur/mes-offres")}>Mes offres</Link>
+                <Link to="/employeur/candidatures" className={linkClass("/employeur/candidatures")}>Candidatures</Link>
               </>
             )}
             {role === "admin" && (
@@ -116,8 +116,8 @@ export default function Navbar({ userRole: propUserRole = null }: NavbarProps) {
                       <DropdownMenuItem onClick={() => navigate("/employeur/dashboard")}>
                         <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate("/employeur/mes-offres")}>
-                        <Briefcase className="mr-2 h-4 w-4" /> Mes offres
+                      <DropdownMenuItem onClick={() => navigate("/employeur/candidatures")}>
+                        <FileText className="mr-2 h-4 w-4" /> Candidatures reçues
                       </DropdownMenuItem>
                     </>
                   )}
@@ -166,7 +166,7 @@ export default function Navbar({ userRole: propUserRole = null }: NavbarProps) {
                 {role === "employeur" && (
                   <>
                     <Link to="/employeur/dashboard" className={`block ${linkClass("/employeur/dashboard")}`} onClick={() => setMobileOpen(false)}>Dashboard</Link>
-                    <Link to="/employeur/mes-offres" className={`block ${linkClass("/employeur/mes-offres")}`} onClick={() => setMobileOpen(false)}>Mes offres</Link>
+                    <Link to="/employeur/candidatures" className={`block ${linkClass("/employeur/candidatures")}`} onClick={() => setMobileOpen(false)}>Candidatures</Link>
                   </>
                 )}
                 {role === "admin" && (

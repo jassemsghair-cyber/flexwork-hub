@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
@@ -29,6 +30,7 @@ const App = () => (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Sonner />
+          <Toaster />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
@@ -40,7 +42,7 @@ const App = () => (
               <Route path="/candidat/candidatures" element={<CandidatCandidatures />} />
               <Route path="/employeur/dashboard" element={<EmployeurDashboard />} />
               <Route path="/employeur/ajouter-offre" element={<AjouterOffre />} />
-              <Route path="/employeur/mes-offres" element={<MesOffres />} />
+
               <Route path="/employeur/candidatures" element={<EmployeurCandidatures />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/utilisateurs" element={<AdminUtilisateurs />} />

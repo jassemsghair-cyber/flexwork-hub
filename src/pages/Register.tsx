@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { User, Building2, ArrowLeft, ArrowRight } from "lucide-react";
-import { SECTEURS } from "@/lib/data";
-import { authApi } from "@/lib/api";
+import { authApi, lookupsApi } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Register() {
@@ -20,7 +19,14 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [dbSecteurs, setDbSecteurs] = useState<string[]>([]);
   const { login } = useAuth();
+
+  useEffect(() => {
+    lookupsApi.lists()
+      .then(data => setDbSecteurs(data.secteurs || []))
+      .catch(console.error);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,7 +215,7 @@ export default function Register() {
                         required
                       >
                         <option value="">Sélectionner un secteur</option>
-                        {SECTEURS.map(s => <option key={s} value={s}>{s}</option>)}
+                        {dbSecteurs.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
                     </div>
                     <div>

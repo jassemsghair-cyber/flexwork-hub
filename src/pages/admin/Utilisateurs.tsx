@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/AdminSidebar";
 import Badge from "@/components/Badge";
-import { CANDIDATS, EMPLOYEURS, formatDate } from "@/lib/data";
+import { formatDate } from "@/lib/data";
 import { adminApi, type ApiUser } from "@/lib/api";
 import { Search, Eye, Ban, Trash2, Bell, X, Loader2, AlertTriangle, Check } from "lucide-react";
 
@@ -24,7 +24,6 @@ export default function AdminUtilisateurs() {
 
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
   const { toast } = useToast();
 
   const load = () => {
@@ -42,30 +41,9 @@ export default function AdminUtilisateurs() {
           initials: u.name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase(),
         }));
         setRows(mapped);
-        setUsingFallback(false);
       })
       .catch(() => {
-        const mock: Row[] = [
-          ...CANDIDATS.map((c, i) => ({
-            id: 10000 + i, name: `${c.prenom} ${c.nom}`, email: c.email,
-            role: "candidat" as const, date: c.date_inscription, statut: c.statut,
-            initials: `${c.prenom[0]}${c.nom[0]}`,
-          })),
-          ...EMPLOYEURS.map((e, i) => ({
-            id: 20000 + i, name: e.entreprise, email: e.email,
-            role: "employeur" as const, date: e.date_inscription, statut: e.statut,
-            initials: e.logo,
-          })),
-        ].filter((u) => {
-          if (roleFilter !== "all" && u.role !== roleFilter) return false;
-          if (search) {
-            const s = search.toLowerCase();
-            return u.name.toLowerCase().includes(s) || u.email.toLowerCase().includes(s);
-          }
-          return true;
-        });
-        setRows(mock);
-        setUsingFallback(true);
+        setRows([]);
       })
       .finally(() => setLoading(false));
   };
@@ -117,11 +95,7 @@ export default function AdminUtilisateurs() {
           </div>
         </div>
 
-        {usingFallback && (
-          <div className="mb-4 flex items-center gap-2 text-xs text-warning fade-up">
-            <AlertTriangle size={14} /> Backend PHP indisponible — données de démonstration.
-          </div>
-        )}
+
 
         {/* Search + Filter */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 fade-up stagger-1">

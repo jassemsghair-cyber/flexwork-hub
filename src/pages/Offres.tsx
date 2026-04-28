@@ -2,8 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JobCard from "@/components/JobCard";
-import { SECTEURS, VILLES, HORAIRES, OFFRES, Offre } from "@/lib/data";
-import { jobsApi, ApiJob } from "@/lib/api";
+import { Offre } from "@/lib/data";
+import { jobsApi, lookupsApi, ApiJob } from "@/lib/api";
 import { Search, SlidersHorizontal, X, AlertTriangle } from "lucide-react";
 
 function apiToOffre(j: ApiJob): Offre {
@@ -37,6 +37,22 @@ export default function Offres() {
   const [sortBy, setSortBy] = useState<"recent" | "salaire_asc" | "salaire_desc">("recent");
   const [showFilters, setShowFilters] = useState(false);
 
+  // Lookups state
+  const [dbSecteurs, setDbSecteurs] = useState<string[]>([]);
+  const [dbVilles, setDbVilles] = useState<string[]>([]);
+  const [dbHoraires, setDbHoraires] = useState<string[]>([]);
+
+  // Charger les lookups
+  useEffect(() => {
+    lookupsApi.lists()
+      .then(data => {
+        setDbSecteurs(data.secteurs || []);
+        setDbVilles(data.villes || []);
+        setDbHoraires(data.horaires || []);
+      })
+      .catch(console.error);
+  }, []);
+
   // Charger depuis l'API avec les filtres serveur
   useEffect(() => {
     let cancelled = false;
@@ -58,8 +74,8 @@ export default function Offres() {
       })
       .catch(() => {
         if (cancelled) return;
-        // Fallback offline : mocks
-        setJobs(OFFRES.filter((o) => o.statut === "active"));
+        // Fallback offline : on ne charge plus les mocks, la DB est requise.
+        setJobs([]);
         setApiDown(true);
       })
       .finally(() => !cancelled && setLoading(false));
@@ -134,7 +150,7 @@ export default function Offres() {
                 <div>
                   <label className="text-sm font-medium mb-2 block">Secteur</label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {SECTEURS.map((s) => (
+                    {dbSecteurs.map((s) => (
                       <label key={s} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer">
                         <input
                           type="checkbox" checked={selectedSecteurs.includes(s)}
@@ -159,7 +175,7 @@ export default function Offres() {
                 <div>
                   <label className="text-sm font-medium mb-2 block">Horaire</label>
                   <div className="space-y-2">
-                    {HORAIRES.map((h) => (
+                    {dbHoraires.map((h) => (
                       <label key={h} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer">
                         <input
                           type="radio" name="horaire" checked={selectedHoraire === h}
@@ -179,7 +195,7 @@ export default function Offres() {
                     className="w-full px-3 py-2 bg-muted/50 rounded-btn text-sm outline-none"
                   >
                     <option value="">Toutes les villes</option>
-                    {VILLES.map((v) => (<option key={v} value={v}>{v}</option>))}
+                    {dbVilles.map((v) => (<option key={v} value={v}>{v}</option>))}
                   </select>
                 </div>
 

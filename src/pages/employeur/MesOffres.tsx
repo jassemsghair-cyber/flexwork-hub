@@ -79,19 +79,21 @@ export default function MesOffres() {
           ) : (
             <div className="space-y-4">
               {offres.map((offre, i) => (
-                <div key={offre.id} className={`glass rounded-card p-6 card-hover fade-up stagger-${(i % 6) + 1}`}>
+                <div key={offre.id} className={`glass rounded-card p-6 card-hover group fade-up stagger-${(i % 6) + 1}`}>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="w-12 h-12 rounded-btn bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                      <span className="font-heading font-bold text-primary text-sm">{offre.logo}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-heading font-semibold">{offre.title}</h3>
-                      <p className="text-sm text-muted-foreground">{offre.lieu} · {formatSalaire(parseFloat(offre.salaire))}</p>
-                    </div>
+                    <Link to={`/employeur/candidatures?job=${offre.id}`} className="flex flex-1 items-center gap-4">
+                      <div className="w-12 h-12 rounded-btn bg-primary/20 border border-primary/30 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/30 transition-colors">
+                        <span className="font-heading font-bold text-primary text-sm">{offre.logo}</span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-heading font-semibold group-hover:text-primary transition-colors">{offre.title}</h3>
+                        <p className="text-sm text-muted-foreground">{offre.lieu} · {formatSalaire(parseFloat(offre.salaire))}</p>
+                      </div>
+                    </Link>
                     <div className="flex items-center gap-3">
-                      <Link to={`/employeur/candidatures?job=${offre.id}`} className="text-sm text-muted-foreground hover:text-primary">
+                      <div className="text-sm text-muted-foreground">
                         {offre.nb_candidatures} candidature{offre.nb_candidatures > 1 ? "s" : ""}
-                      </Link>
+                      </div>
                       <Badge
                         text={offre.statut === "active" ? "Active" : offre.statut === "en_attente" ? "En attente" : offre.statut === "rejetee" ? "Rejetée" : "Inactive"}
                         variant={offre.statut === "active" ? "success" : offre.statut === "en_attente" ? "warning" : "destructive"}

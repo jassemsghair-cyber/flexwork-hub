@@ -4,7 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import StatCard from "@/components/StatCard";
 import Badge from "@/components/Badge";
-import { CANDIDATURES, OFFRES, formatDate } from "@/lib/data";
+import { formatDate } from "@/lib/data";
 import { candidaturesApi, type ApiCandidatureCandidate } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { FileText, Clock, CheckCircle, XCircle, Briefcase, Loader2, AlertTriangle } from "lucide-react";
@@ -25,7 +25,6 @@ export default function CandidatCandidatures() {
   const [filter, setFilter] = useState<string>("all");
   const [rows, setRows] = useState<Row[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -50,26 +49,10 @@ export default function CandidatCandidatures() {
           statut: c.statut,
         }));
         setRows(mapped);
-        setUsingFallback(false);
       })
       .catch(() => {
         if (cancelled) return;
-        // Fallback to mock data when PHP backend isn't running
-        const mock = CANDIDATURES.filter((c) => c.candidat_id === user.id).map((c) => {
-          const o = OFFRES.find((x) => x.id === c.offre_id);
-          return {
-            id: c.id,
-            offre_id: c.offre_id,
-            offre_titre: o?.titre || "Offre supprimée",
-            entreprise: o?.entreprise || "—",
-            lieu: o?.lieu || "—",
-            logo: o?.logo || "??",
-            date_postulation: c.date_postulation,
-            statut: c.statut,
-          };
-        });
-        setRows(mock);
-        setUsingFallback(true);
+        setRows([]);
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -112,11 +95,6 @@ export default function CandidatCandidatures() {
       <div className="pt-24 pb-20 px-4">
         <div className="max-w-5xl mx-auto">
           <h1 className="font-heading font-bold text-3xl mb-2 fade-up">Mes candidatures</h1>
-          {usingFallback && (
-            <div className="mb-6 flex items-center gap-2 text-xs text-warning fade-up">
-              <AlertTriangle size={14} /> Backend PHP indisponible — affichage des données de démonstration.
-            </div>
-          )}
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 fade-up stagger-1">

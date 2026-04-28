@@ -3,14 +3,13 @@ import { useToast } from "@/hooks/use-toast";
 import AdminSidebar from "@/components/AdminSidebar";
 import StatCard from "@/components/StatCard";
 import Badge from "@/components/Badge";
-import { OFFRES, CANDIDATS, EMPLOYEURS, CANDIDATURES, SECTEURS, formatDate } from "@/lib/data";
+import { formatDate } from "@/lib/data";
 import { adminApi, type ApiAdminStats } from "@/lib/api";
 import { Users, Briefcase, FileText, AlertCircle, Bell, Loader2, AlertTriangle } from "lucide-react";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<ApiAdminStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
   const { toast } = useToast();
 
   const load = () => {
@@ -19,38 +18,9 @@ export default function AdminDashboard() {
       .stats()
       .then((res) => {
         setStats(res.stats);
-        setUsingFallback(false);
       })
       .catch(() => {
-        const sectorData = SECTEURS.map((s) => ({
-          secteur: s,
-          count: OFFRES.filter((o) => o.secteur === s).length,
-        }));
-        const recent = [
-          ...CANDIDATS.map((c) => ({ id: c.id, name: `${c.prenom} ${c.nom}`, email: c.email, role: "candidat", created_at: c.date_inscription })),
-          ...EMPLOYEURS.map((e) => ({ id: e.id, name: e.entreprise, email: e.email, role: "employeur", created_at: e.date_inscription })),
-        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
-        const pending = OFFRES.filter((o) => o.statut === "en_attente").map((o) => ({
-          id: o.id, title: o.titre, entreprise: o.entreprise, lieu: o.lieu, created_at: o.date_publication,
-        }));
-        setStats({
-          total_users: CANDIDATS.length + EMPLOYEURS.length,
-          total_candidats: CANDIDATS.length,
-          total_employeurs: EMPLOYEURS.length,
-          total_admins: 1,
-          total_jobs: OFFRES.length,
-          jobs_active: OFFRES.filter((o) => o.statut === "active").length,
-          jobs_en_attente: pending.length,
-          jobs_rejetee: OFFRES.filter((o) => o.statut === "rejetee").length,
-          total_candidatures: CANDIDATURES.length,
-          candidatures_en_attente: CANDIDATURES.filter((c) => c.statut === "en_attente").length,
-          candidatures_acceptee: CANDIDATURES.filter((c) => c.statut === "acceptee").length,
-          candidatures_refusee: CANDIDATURES.filter((c) => c.statut === "refusee").length,
-          par_secteur: sectorData,
-          inscriptions_recentes: recent,
-          offres_en_attente: pending,
-        });
-        setUsingFallback(true);
+        setStats(null);
       })
       .finally(() => setLoading(false));
   };
@@ -93,11 +63,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {usingFallback && (
-          <div className="mb-4 flex items-center gap-2 text-xs text-warning fade-up">
-            <AlertTriangle size={14} /> Backend PHP indisponible — données de démonstration.
-          </div>
-        )}
+
 
         {loading || !stats ? (
           <div className="text-center py-20 glass rounded-card">

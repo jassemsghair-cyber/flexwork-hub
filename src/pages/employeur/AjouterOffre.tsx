@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { SECTEURS, VILLES, HORAIRES } from "@/lib/data";
-import { jobsApi, AuthUser } from "@/lib/api";
+import { jobsApi, lookupsApi, AuthUser } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, ArrowRight, Eye, Loader2 } from "lucide-react";
@@ -15,6 +14,20 @@ export default function AjouterOffre() {
   const [confirmed, setConfirmed] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const [dbSecteurs, setDbSecteurs] = useState<string[]>([]);
+  const [dbVilles, setDbVilles] = useState<string[]>([]);
+  const [dbHoraires, setDbHoraires] = useState<string[]>([]);
+
+  useEffect(() => {
+    lookupsApi.lists()
+      .then(data => {
+        setDbSecteurs(data.secteurs || []);
+        setDbVilles(data.villes || []);
+        setDbHoraires(data.horaires || []);
+      })
+      .catch(console.error);
+  }, []);
 
   const [form, setForm] = useState({
     titre: "", secteur: "", type: "Temps partiel", lieu: "",
@@ -61,7 +74,7 @@ export default function AjouterOffre() {
         competences: form.competences,
       });
       toast({ title: "Offre publiée", description: "Votre offre est en attente de validation." });
-      navigate("/employeur/mes-offres");
+      navigate("/employeur/dashboard");
     } catch (err) {
       toast({ title: "Erreur", description: err instanceof Error ? err.message : "Impossible de créer l'offre", variant: "destructive" });
     } finally {
@@ -101,14 +114,14 @@ export default function AjouterOffre() {
                 <label className="text-sm font-medium mb-2 block">Secteur</label>
                 <select value={form.secteur} onChange={(e) => updateForm("secteur", e.target.value)} className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none">
                   <option value="">Sélectionner</option>
-                  {SECTEURS.map((s) => <option key={s}>{s}</option>)}
+                  {dbSecteurs.map((s) => <option key={s}>{s}</option>)}
                 </select>
               </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">Lieu</label>
                 <select value={form.lieu} onChange={(e) => updateForm("lieu", e.target.value)} className="w-full px-4 py-3 bg-muted/50 rounded-btn text-sm outline-none">
                   <option value="">Sélectionner</option>
-                  {VILLES.map((v) => <option key={v}>{v}</option>)}
+                  {dbVilles.map((v) => <option key={v}>{v}</option>)}
                 </select>
               </div>
             </div>
@@ -138,7 +151,7 @@ export default function AjouterOffre() {
               <div>
                 <label className="text-sm font-medium mb-3 block">Horaires</label>
                 <div className="flex flex-wrap gap-3">
-                  {HORAIRES.map((h) => (
+                  {dbHoraires.map((h) => (
                     <label key={h} className="flex items-center gap-2 px-4 py-2 glass rounded-btn cursor-pointer text-sm">
                       <input type="checkbox" checked={form.horaires.includes(h)} onChange={() => toggleHoraire(h)} className="accent-primary" /> {h}
                     </label>
